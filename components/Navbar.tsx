@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Bot } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebase/client";
@@ -25,13 +25,14 @@ import { Label } from "@/components/ui/label";
 const Navbar = () => {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, setUser, setIsAuthenticated } = useUserStore();
 
   const handleScrollToSection = (e: React.MouseEvent, sectionId: string) => {
     e.preventDefault();
     if (pathname !== "/") {
-      window.location.href = `/#${sectionId}`;
+      router.push(`/#${sectionId}`);
     } else {
       document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
     }
@@ -129,18 +130,23 @@ const Navbar = () => {
           >
             About Us
           </a>
-          <a
-            href="#pricing"
-            onClick={(e) => handleScrollToSection(e, "pricing")}
+          <Link
+            href="/pricing"
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
           >
             Pricing
-          </a>
+          </Link>
           <Link
             href="/practice"
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
           >
             Practice
+          </Link>
+          <Link
+            href="/jobs"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+          >
+            Jobs
           </Link>
           <Link
             href="/contact"
