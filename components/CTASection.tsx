@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const CTASection = () => {
   return (
-    <section className="relative py-24 px-6 bg-gradient-to-br from-primary/10 via-background to-secondary/10 overflow-hidden">
+    <section className="relative py-24 px-6 bg-linear-to-br from-primary/10 via-background to-secondary/10 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
       <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-secondary/5 blur-3xl" />
