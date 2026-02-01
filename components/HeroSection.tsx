@@ -4,7 +4,7 @@ import ChatMockup from "./ChatMockup";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen pt-32 pb-20 px-6 overflow-hidden">
+    <section className="relative min-h-screen pt-32 pb-20 px-6 overflow-hidden" id="home">
       {/* Background decorations */}
       <div className="absolute inset-0 bg-hero-gradient" />
       <div className="absolute top-20 right-1/4 w-96 h-96 rounded-full bg-emerald-200/30 blur-3xl animate-pulse-soft" />
