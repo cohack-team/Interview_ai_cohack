@@ -1,88 +1,97 @@
 "use server";
 
-import { auth, db } from "@/firebase/client";
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { UserProfile } from "@/types";
+import { auth, db } from "@/firebase/admin";
+import { cookies } from "next/headers";
 
-export async function signInWithEmail(email: string, password: string) {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists()) {
-      return { success: true, user: userDoc.data() as UserProfile };
-    }
-    
-    return { success: false, error: "User profile not found" };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+// Session duration (1 week)
+const SESSION_DURATION = 60 * 60 * 24 * 7;
+
+// Set session cookie
+export async function setSessionCookie(idToken: string) {
+  const cookieStore = await cookies();
+
+  // Create session cookie
+  const sessionCookie = await auth.createSessionCookie(idToken, {
+    expiresIn: SESSION_DURATION * 1000, // milliseconds
+  });
+
+  // Set cookie in the browser
+  cookieStore.set("session", sessionCookie, {
+    maxAge: SESSION_DURATION,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    sameSite: "lax",
+  });
 }
 
-export async function signUpWithEmail(
-  email: string, 
-  password: string, 
-  displayName: string
-) {
+export async function signUp(params: SignUpParams) {
+  const { uid, name, email } = params;
+
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    const profile: UserProfile = {
-      uid: user.uid,
-      email: user.email ?? email,
-      displayName: displayName,
-      provider: "email",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    // check if user exists in db
+    const userRecord = await db.collection("users").doc(uid).get();
+    if (userRecord.exists)
+      return {
+        success: false,
+        message: "User already exists. Please sign in.",
+      };
+
+    // save user to db
+    await db.collection("users").doc(uid).set({
+      name,
+      email,
+      // profileURL,
+      // resumeURL,
+    });
+
+    return {
+      success: true,
+      message: "Account created successfully. Please sign in.",
     };
-    
-    await setDoc(doc(db, "users", user.uid), profile);
-    
-    return { success: true, user: profile };
   } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
+    console.error("Error creating user:", error);
 
-export async function signOutUser() {
-  try {
-    await firebaseSignOut(auth);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-export async function getUserProfile(uid: string) {
-  try {
-    const userDoc = await getDoc(doc(db, "users", uid));
-    if (userDoc.exists()) {
-      return { success: true, user: userDoc.data() as UserProfile };
+    // Handle Firebase specific errors
+    if (error.code === "auth/email-already-exists") {
+      return {
+        success: false,
+        message: "This email is already in use",
+      };
     }
-    return { success: false, error: "User not found" };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+
+    return {
+      success: false,
+      message: "Failed to create account. Please try again.",
+    };
   }
 }
 
-export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
+export async function signIn(params: SignInParams) {
+  const { email, idToken } = params;
+
   try {
-    await setDoc(doc(db, "users", uid), {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-    
-    return { success: true };
+    const userRecord = await auth.getUserByEmail(email);
+    if (!userRecord)
+      return {
+        success: false,
+        message: "User does not exist. Create an account.",
+      };
+
+    await setSessionCookie(idToken);
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("Error signing in:", error);
+
+    return {
+      success: false,
+      message: "Failed to log into account. Please try again.",
+    };
   }
+}
+
+// Sign out user by clearing the session cookie
+export async function signOut() {
+  const cookieStore = await cookies();
+
+  cookieStore.delete("session");
 }

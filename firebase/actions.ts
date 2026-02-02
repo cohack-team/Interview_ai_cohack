@@ -1,56 +1,40 @@
-"use server";
+import axios from "axios";
+import { db } from "./client";
+import { doc, getDoc } from "firebase/firestore";
 
-import { adminAuth, adminDb } from "@/firebase/admin";
-import { UserProfile } from "@/types";
+export async function getInterviewById(
+  id: string,
+  userId: string
+): Promise<{
+  data?: any;
+  success?: boolean;
+  error?: string;
+}> {
+  const res = await axios.post("/api/interviews", {
+    id,
+    userId,
+  });
 
-export async function createUser(data: UserProfile) {
-  try {
-    await adminDb.collection("users").doc(data.uid).set(data);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  if (!res.data.success) {
+    return { error: "Not found", success: false, data: null };
   }
+  return { data: res.data, success: true };
 }
 
-export async function getUser(uid: string) {
+export async function getUserDocument(uid: string) {
   try {
-    const userDoc = await adminDb.collection("users").doc(uid).get();
-    if (userDoc.exists) {
-      return { success: true, user: userDoc.data() as UserProfile };
+    const userDocRef = doc(db, "users", uid); // Replace "users" with your collection name
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      return userData;
+    } else {
+      console.log("User document not found");
+      return null;
     }
-    return { success: false, error: "User not found" };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-export async function updateUser(uid: string, data: Partial<UserProfile>) {
-  try {
-    await adminDb.collection("users").doc(uid).update({
-      ...data,
-      updatedAt: new Date().toISOString(),
-    });
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-export async function deleteUser(uid: string) {
-  try {
-    await adminAuth.deleteUser(uid);
-    await adminDb.collection("users").doc(uid).delete();
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-export async function verifyToken(token: string) {
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    return { success: true, uid: decodedToken.uid };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error) {
+    console.error("Error getting user document:", error);
+    return null;
   }
 }
