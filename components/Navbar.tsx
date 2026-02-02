@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Bot } from "lucide-react";
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup,signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebase/client";
 import { useUserStore } from "@/hooks/userUser";
@@ -33,6 +33,7 @@ import {
 const Navbar = () => {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("home");
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, setUser, setIsAuthenticated } = useUserStore();
@@ -87,6 +88,32 @@ const Navbar = () => {
     return () => unsubscribe();
   }, [setUser, setIsAuthenticated]);
 
+  useEffect(() => {
+    // Handle active section highlighting for home page
+    if (pathname !== "/") {
+      setActiveSection("none");
+      return;
+    }
+
+    const handleScroll = () => {
+      const sections = ["home", "features"];
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) {
+            setActiveSection(section);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Call once on mount
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
+
   const handleGoogleAuth = async () => {
     try {
       const provider = new GoogleAuthProvider();
@@ -130,8 +157,10 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 mx-5 my-4 p-3 rounded-2xl bg-background/70 shadow-gray-600 border-2 border-foreground/10 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+      <div className="flex justify-center pt-4 px-5">
+        <nav className="pointer-events-auto p-3 rounded-2xl bg-background/70 shadow-gray-600 border-2 border-foreground/10 backdrop-blur-md w-full max-w-6xl">
+          <div className="flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="w-10 h-10 rounded-xl bg-button-gradient flex items-center justify-center shadow-glow">
@@ -141,42 +170,66 @@ const Navbar = () => {
         </Link>
 
         {/* Navigation Links */}
-        <div className="hidden md:flex items-center nav-glass rounded-full px-2 py-1.5">
+        <div className="hidden md:flex items-center nav-glass rounded-full px-2 py-1.5 gap-1">
           <a
             href="#home"
             onClick={(e) => handleScrollToSection(e, "home")}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-300 rounded-full relative ${
+              (pathname === "/" && activeSection === "home") || (pathname === "/" && activeSection === "none")
+                ? "bg-primary/20 text-primary font-semibold scale-105" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             Home
           </a>
           <a
-            href="#about"
+            href="#features"
             onClick={(e) => handleScrollToSection(e, "features")}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-300 rounded-full relative ${
+              pathname === "/" && activeSection === "features"
+                ? "bg-primary/20 text-primary font-semibold scale-105" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             About Us
           </a>
           <Link
             href="/pricing"
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
+              pathname === "/pricing" 
+                ? "bg-primary/20 text-primary font-semibold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             Pricing
           </Link>
           <Link
             href="/practice"
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
+              pathname === "/practice" 
+                ? "bg-primary/20 text-primary font-semibold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             Practice
           </Link>
           <Link
             href="/jobs"
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
+              pathname === "/jobs" 
+                ? "bg-primary/20 text-primary font-semibold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             Jobs
           </Link>
           <Link
             href="/contact"
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-accent/50"
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
+              pathname === "/contact" 
+                ? "bg-primary/20 text-primary font-semibold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
           >
             Contact Us
           </Link>
@@ -184,26 +237,67 @@ const Navbar = () => {
 
         {/* Auth Buttons */}
         {isAuthenticated && user ? (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1.5">
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                {user.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={user.displayName || "User"}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-primary">
-                    {getInitial(user.displayName, user.email)}
-                  </span>
-                )}
-              </div>
-              <span className="text-sm font-medium text-foreground">
-                {user.displayName || user.email}
-              </span>
-            </div>
-          </div>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1.5 hover:bg-muted/60 transition-all duration-200 cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                  {user.profilePicture ? (
+                    <img
+                      src={user.profilePicture}
+                      alt={user.displayName || "User"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-primary">
+                      {getInitial(user.displayName, user.email)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-foreground">
+                  {user.displayName || user.email}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={12} className="w-56 bg-card/95 backdrop-blur-md border border-border/50 rounded-xl shadow-lg animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300 ease-out data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-top-1 data-[state=closed]:duration-200 z-[100]">
+              <DropdownMenuLabel className="flex flex-col gap-2 py-3 px-1">
+                <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-accent/20 transition-colors duration-150">
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {user.profilePicture ? (
+                      <img
+                        src={user.profilePicture}
+                        alt={user.displayName || "User"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-primary">
+                        {getInitial(user.displayName, user.email)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate text-foreground">
+                      {user.displayName || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-1.5 bg-border/40" />
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="cursor-pointer px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-accent/50 transition-all duration-150 flex items-center gap-2">
+                  <span>👤</span>
+                  View Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1.5 bg-border/40" />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all duration-150 flex items-center gap-2 focus:bg-red-500/10">
+                <span>🚪</span>
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
           <div className="flex items-center gap-3">
             {/* Login Dialog */}
@@ -379,7 +473,9 @@ const Navbar = () => {
         </div>
         )}
       </div>
-    </nav>
+        </nav>
+      </div>
+    </div>
   );
 };
 
